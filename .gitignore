@@ -1,0 +1,7 @@
+gql/*
+graphql/*
+promise/*
+rx/*
+.idea/*
+.graphqlconfig
+schema.graphql

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="plugin.video.stashapp"
+       version="0.1.0"
+       name="Stash"
+       provider-name="">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.routing" version="0.2.3"/>
+        <import addon="script.module.requests" version="2.22.0"/>
+        <import addon="script.module.six" version="1.14.0"/>
+        <import addon="script.module.urllib3" version="1.25.8"/>
+        <import addon="script.module.certifi" version="2019.11.28"/>
+        <import addon="script.module.idna" version="2.8.1"/>
+        <import addon="script.module.chardet" version="3.0.4"/>
+
+        <!-- gql graphql-core promise rx -->
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="plugin.py">
+        <provides>video image</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en">Stash (An Organizer for Your Porn) Plugin for Kodi</summary>
+        <description lang="en_GB">Lets you view scenes, movies, and galleries from your Stash managed porn collection on the big screen.</description>
+        <assets>
+            <icon>resources/icon.png</icon>
+<!--            <fanart>fanart.jpg</fanart>-->
+<!--            <screenshot>resources/screenshot-01.jpg</screenshot>-->
+<!--            <screenshot>resources/screenshot-02.jpg</screenshot>-->
+<!--            <screenshot>resources/screenshot-03.jpg</screenshot>-->
+        </assets>
+        <news>No news (yet)!</news>
+    </extension>
+</addon>
