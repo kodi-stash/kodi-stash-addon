@@ -1,5 +1,7 @@
 # Kodi Stash Addon
 
+[![Build Kodi Addon](https://github.com/kodi-stash/kodi-stash-addon/actions/workflows/build.yaml/badge.svg)](https://github.com/kodi-stash/kodi-stash-addon/actions/workflows/build.yaml)
+
 This addon for Kodi lets you browse your [Stash](https://stashapp.cc/) library, watch scenes, and view gallery pictures,
 all on the big screen!
 
@@ -26,6 +28,19 @@ all on the big screen!
 - Optionally only display _Organized_ content.
 
 ## Installation
+
+Custom repository coming soon.
+
+1. Download the latest release Zip file from the [Releases](https://github.com/kodi-stash/kodi-stash-addon/releases) page.
+1. Move the downloaded Zip file to somewhere accessible by Kodi (e.g., the home directory of the user running Kodi).
+1. Within Kodi, navigate to _Addons_ › _Install from zip file_,
+   then within the file browser dialog, browse to the directory where you moved the Zip file and select the downloaded file.
+1. _Kodi Stash Addon_ is now installed.
+
+By default _Kodi Stash Addon_ uses `http://localhost:9999` as the Stash server address to connect to.
+Unless Stash is running on the same host as Kodi this is probably incorrect, and will result in errors.
+
+The Stash host can be changed in the addon settings.
 
 ## Known Issues
 
