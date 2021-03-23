@@ -5,6 +5,8 @@
 This addon for Kodi lets you browse your [Stash](https://stashapp.cc/) library, watch scenes, and view gallery pictures,
 all on the big screen!
 
+**Compatible With**: Kodi 19 "Matrix". Other versions untested.
+
 ![screenshot](screenshot.jpg)
 
 ## Features

@@ -169,16 +169,37 @@ def scene_directory_item(scene, label_format='{title}') -> xbmcgui.ListItem:
     screenshot_url = scene['paths']['screenshot']
     gallery_count = len(scene['galleries'])
     studio = scene['studio']
+    tag_names = [t['name'] for t in scene['tags']]
 
     item = xbmcgui.ListItem(label=label_format.format(**scene))
+
+    def plot():
+        def fj(l, s):
+            if len(l) == 0:
+                return None
+
+            return s.join(filter(None, l))
+
+        items = {
+            'Performers': fj([p['name'] for p in scene['performers']], ', '),
+            'Studio': studio['name'] if studio else None,
+            'Tags': fj(tag_names, ', ')
+        }
+
+        labels = '\n\n'.join([f'[B]{k}:[/B] {v}' for k, v in items.items() if v is not None])
+
+        parts = [labels, scene["details"]]
+
+        return fj(parts, '\n\n')
 
     item.setInfo('video', {
         'title': title,
         'premiered': scene['date'],
         'studio': studio['name'] if studio else None,
         'duration': scene['file']['duration'],
-        'tag': [t['name'] for t in scene['tags']],
-        'plot': scene['details'],
+        'tag': tag_names,
+        'plot': plot(),
+
         'votes': f'{scene["o_counter"]} orgasms',
         #**common_item_info('video')
     })
@@ -452,12 +473,12 @@ def movie_contents(movie_id: str):
     query = gql(
         SceneFragment +
         """
-            query FindMovie($id: ID!) {
+            query FindMovie($id: ID!, $organized: Boolean) {
                 movie: findMovie(id: $id) {
                     name
                 },
                 
-                movieScenes: findScenes(scene_filter: {movies: {value: [$id], modifier: INCLUDES}}) {
+                movieScenes: findScenes(filter: {per_page: 0}, scene_filter: {movies: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
@@ -467,7 +488,8 @@ def movie_contents(movie_id: str):
     )
 
     result = client.execute(query, {
-        'id': movie_id
+        'id': movie_id,
+        'organized': hide_unorganised or None
     })
 
     movie = result['movie']
@@ -604,13 +626,13 @@ def performer_contents(performer_id: str):
                     image_path
                 }
                 
-                performerScenes: findScenes(scene_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                performerScenes: findScenes(filter: {per_page: 0}, scene_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
                 }
                 
-                performerGalleries: findGalleries(gallery_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                performerGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
@@ -782,24 +804,24 @@ def tag_contents(tag_id: str):
     query = gql(
         SceneFragment + GalleryFragment +
         """
-            query FindTag($id: ID!) {
+            query FindTag($id: ID!, $organized: Boolean) {
                 tag: findTag(id: $id) {
                     name
                 },
                 
-                taggedScenes: findScenes(scene_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
+                taggedScenes: findScenes(filter: {per_page: 0}, scene_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
                 },
                 
-                taggedGalleries: findGalleries(gallery_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
+                taggedGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
                 },
                 
-                taggedMarkers: findSceneMarkers(scene_marker_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
+                taggedMarkers: findSceneMarkers(filter: {per_page: 0}, scene_marker_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
                     scene_markers {
                         id
                     }
@@ -809,7 +831,8 @@ def tag_contents(tag_id: str):
     )
 
     result = client.execute(query, {
-        'id': tag_id
+        'id': tag_id,
+        'organized': hide_unorganised or None
     })
 
     tag = result['tag']
