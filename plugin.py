@@ -123,13 +123,27 @@ fragment Performer on Performer {
 
 plugin = routing.Plugin()
 
-stash_url = xbmcplugin.getSetting(plugin.handle, 'url')
+stash_url = xbmcplugin.getSetting(plugin.handle, 'stash_url')
 hide_unorganised = xbmcplugin.getSetting(plugin.handle, 'hide_unorganised') == 'true'
+api_token = xbmcplugin.getSetting(plugin.handle, 'api_token')
 
 xbmc.log(f'{sys.argv}, {plugin.handle}, {stash_url}, {hide_unorganised}', xbmc.LOGINFO)
 
-transport = RequestsHTTPTransport(urljoin(stash_url, '/graphql'))
-client = Client(transport=transport)
+if api_token:
+    headers = {
+        'ApiKey': api_token
+    }
+    transport = RequestsHTTPTransport(
+        url=urljoin(stash_url, '/graphql'),
+        headers=headers,
+        use_json=True
+    )
+    xbmc.log(f'{plugin.handle} stash plugin Using API Token', xbmc.LOGINFO)
+else:
+    xbmc.log(f'{plugin.handle} stash plugin using standard transport', xbmc.LOGINFO)
+    transport = RequestsHTTPTransport(urljoin(stash_url, '/graphql'))
+    
+client = Client(transport=transport, fetch_schema_from_transport=True)
 
 
 def common_item_info(mediatype: str):
@@ -446,7 +460,7 @@ def list_scenes():
         SceneFragment +
         """
             query ListScenes($organized: Boolean) {
-                allScenes: findScenes(filter: {per_page: 0}, scene_filter: {organized: $organized}) {
+                allScenes: findScenes(filter: {per_page: -1}, scene_filter: {organized: $organized}) {
                     scenes {
                         ... Scene
                     }
@@ -478,7 +492,7 @@ def movie_contents(movie_id: str):
                     name
                 },
                 
-                movieScenes: findScenes(filter: {per_page: 0}, scene_filter: {movies: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                movieScenes: findScenes(filter: {per_page: -1}, scene_filter: {movies: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
@@ -509,7 +523,7 @@ def list_movies():
     query = gql(
         """
             query ListMovies {
-                allMovies: findMovies(filter: {per_page: 0}) {
+                allMovies: findMovies(filter: {per_page: -1}) {
                     movies {
                         id,
                         name,
@@ -565,7 +579,7 @@ def list_markers():
     query = gql(
         """
             query ListMarkers {
-                allMarkers: findSceneMarkers(filter: {per_page: 0}) {
+                allMarkers: findSceneMarkers(filter: {per_page: -1}) {
                     scene_markers {
                         title,
                         seconds,
@@ -626,13 +640,13 @@ def performer_contents(performer_id: str):
                     image_path
                 }
                 
-                performerScenes: findScenes(filter: {per_page: 0}, scene_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                performerScenes: findScenes(filter: {per_page: -1}, scene_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
                 }
                 
-                performerGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                performerGalleries: findGalleries(filter: {per_page: -1}, gallery_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
@@ -670,7 +684,7 @@ def list_performers():
         PerformerFragment +
         """
             query ListPerformers {
-                allPerformers: findPerformers(filter: {per_page: 0}) {
+                allPerformers: findPerformers(filter: {per_page: -1}) {
                     performers {
                         ... Performer
                     }
@@ -777,7 +791,7 @@ def list_galleries():
         GalleryFragment +
         """
             query ListGalleries($organized: Boolean) {
-                allGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {organized: $organized}) {
+                allGalleries: findGalleries(filter: {per_page: -1}, gallery_filter: {organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
@@ -809,19 +823,19 @@ def tag_contents(tag_id: str):
                     name
                 },
                 
-                taggedScenes: findScenes(filter: {per_page: 0}, scene_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                taggedScenes: findScenes(filter: {per_page: -1}, scene_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
                 },
                 
-                taggedGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                taggedGalleries: findGalleries(filter: {per_page: -1}, gallery_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
                 },
                 
-                taggedMarkers: findSceneMarkers(filter: {per_page: 0}, scene_marker_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
+                taggedMarkers: findSceneMarkers(filter: {per_page: -1}, scene_marker_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
                     scene_markers {
                         id
                     }
@@ -856,7 +870,7 @@ def list_tags():
     query = gql(
         """
             query ListTags {
-                allTags: findTags(filter: {per_page: 0}) {
+                allTags: findTags(filter: {per_page: -1}) {
                     tags {
                         id,
                         name

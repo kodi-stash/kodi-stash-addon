@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <category label="General">
-        <setting label="Stash server URL" type="text"  id="url" default="http://localhost:9999"/>
+        <setting label="Stash server URL" type="text"  id="stash_url" default="http://localhost:9999"/>
         <setting type="sep"/>
         <setting id="hide_unorganised" type="bool" label="Hide unorganized scenes and galleries" default="false" />
+        <setting label="API Token" type="text" id="api_token" default=""/>
     </category>
 </settings>
