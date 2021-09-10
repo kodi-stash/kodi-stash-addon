@@ -123,13 +123,27 @@ fragment Performer on Performer {
 
 plugin = routing.Plugin()
 
-stash_url = xbmcplugin.getSetting(plugin.handle, 'url')
+stash_url = xbmcplugin.getSetting(plugin.handle, 'stash_url')
 hide_unorganised = xbmcplugin.getSetting(plugin.handle, 'hide_unorganised') == 'true'
+api_token = xbmcplugin.getSetting(plugin.handle, 'api_token')
 
 xbmc.log(f'{sys.argv}, {plugin.handle}, {stash_url}, {hide_unorganised}', xbmc.LOGINFO)
 
-transport = RequestsHTTPTransport(urljoin(stash_url, '/graphql'))
-client = Client(transport=transport)
+if api_token:
+    headers = {
+        'ApiKey': api_token
+    }
+    transport = RequestsHTTPTransport(
+        url=urljoin(stash_url, '/graphql'),
+        headers=headers,
+        use_json=True
+    )
+    xbmc.log(f'{plugin.handle} stash plugin Using API Token', xbmc.LOGINFO)
+else:
+    xbmc.log(f'{plugin.handle} stash plugin using standard transport', xbmc.LOGINFO)
+    transport = RequestsHTTPTransport(urljoin(stash_url, '/graphql'))
+    
+client = Client(transport=transport, fetch_schema_from_transport=True)
 
 
 def common_item_info(mediatype: str):
@@ -169,37 +183,16 @@ def scene_directory_item(scene, label_format='{title}') -> xbmcgui.ListItem:
     screenshot_url = scene['paths']['screenshot']
     gallery_count = len(scene['galleries'])
     studio = scene['studio']
-    tag_names = [t['name'] for t in scene['tags']]
 
     item = xbmcgui.ListItem(label=label_format.format(**scene))
-
-    def plot():
-        def fj(l, s):
-            if len(l) == 0:
-                return None
-
-            return s.join(filter(None, l))
-
-        items = {
-            'Performers': fj([p['name'] for p in scene['performers']], ', '),
-            'Studio': studio['name'] if studio else None,
-            'Tags': fj(tag_names, ', ')
-        }
-
-        labels = '\n\n'.join([f'[B]{k}:[/B] {v}' for k, v in items.items() if v is not None])
-
-        parts = [labels, scene["details"]]
-
-        return fj(parts, '\n\n')
 
     item.setInfo('video', {
         'title': title,
         'premiered': scene['date'],
         'studio': studio['name'] if studio else None,
         'duration': scene['file']['duration'],
-        'tag': tag_names,
-        'plot': plot(),
-
+        'tag': [t['name'] for t in scene['tags']],
+        'plot': scene['details'],
         'votes': f'{scene["o_counter"]} orgasms',
         #**common_item_info('video')
     })
@@ -446,7 +439,7 @@ def list_scenes():
         SceneFragment +
         """
             query ListScenes($organized: Boolean) {
-                allScenes: findScenes(filter: {per_page: 0}, scene_filter: {organized: $organized}) {
+                allScenes: findScenes(filter: {per_page: -1}, scene_filter: {organized: $organized}) {
                     scenes {
                         ... Scene
                     }
@@ -473,12 +466,12 @@ def movie_contents(movie_id: str):
     query = gql(
         SceneFragment +
         """
-            query FindMovie($id: ID!, $organized: Boolean) {
+            query FindMovie($id: ID!) {
                 movie: findMovie(id: $id) {
                     name
                 },
                 
-                movieScenes: findScenes(filter: {per_page: 0}, scene_filter: {movies: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                movieScenes: findScenes(scene_filter: {movies: {value: [$id], modifier: INCLUDES}}) {
                     scenes {
                         ... Scene
                     }
@@ -488,8 +481,7 @@ def movie_contents(movie_id: str):
     )
 
     result = client.execute(query, {
-        'id': movie_id,
-        'organized': hide_unorganised or None
+        'id': movie_id
     })
 
     movie = result['movie']
@@ -509,7 +501,7 @@ def list_movies():
     query = gql(
         """
             query ListMovies {
-                allMovies: findMovies(filter: {per_page: 0}) {
+                allMovies: findMovies(filter: {per_page: -1}) {
                     movies {
                         id,
                         name,
@@ -565,7 +557,7 @@ def list_markers():
     query = gql(
         """
             query ListMarkers {
-                allMarkers: findSceneMarkers(filter: {per_page: 0}) {
+                allMarkers: findSceneMarkers(filter: {per_page: -1}) {
                     scene_markers {
                         title,
                         seconds,
@@ -626,13 +618,13 @@ def performer_contents(performer_id: str):
                     image_path
                 }
                 
-                performerScenes: findScenes(filter: {per_page: 0}, scene_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                performerScenes: findScenes(scene_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     scenes {
                         ... Scene
                     }
                 }
                 
-                performerGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                performerGalleries: findGalleries(gallery_filter: {performers: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
@@ -670,7 +662,7 @@ def list_performers():
         PerformerFragment +
         """
             query ListPerformers {
-                allPerformers: findPerformers(filter: {per_page: 0}) {
+                allPerformers: findPerformers(filter: {per_page: -1}) {
                     performers {
                         ... Performer
                     }
@@ -777,7 +769,7 @@ def list_galleries():
         GalleryFragment +
         """
             query ListGalleries($organized: Boolean) {
-                allGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {organized: $organized}) {
+                allGalleries: findGalleries(filter: {per_page: -1}, gallery_filter: {organized: $organized}) {
                     galleries {
                         ... Gallery
                     }
@@ -804,24 +796,24 @@ def tag_contents(tag_id: str):
     query = gql(
         SceneFragment + GalleryFragment +
         """
-            query FindTag($id: ID!, $organized: Boolean) {
+            query FindTag($id: ID!) {
                 tag: findTag(id: $id) {
                     name
                 },
                 
-                taggedScenes: findScenes(filter: {per_page: 0}, scene_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                taggedScenes: findScenes(scene_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
                     scenes {
                         ... Scene
                     }
                 },
                 
-                taggedGalleries: findGalleries(filter: {per_page: 0}, gallery_filter: {tags: {value: [$id], modifier: INCLUDES}, organized: $organized}) {
+                taggedGalleries: findGalleries(gallery_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
                     galleries {
                         ... Gallery
                     }
                 },
                 
-                taggedMarkers: findSceneMarkers(filter: {per_page: 0}, scene_marker_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
+                taggedMarkers: findSceneMarkers(scene_marker_filter: {tags: {value: [$id], modifier: INCLUDES}}) {
                     scene_markers {
                         id
                     }
@@ -831,8 +823,7 @@ def tag_contents(tag_id: str):
     )
 
     result = client.execute(query, {
-        'id': tag_id,
-        'organized': hide_unorganised or None
+        'id': tag_id
     })
 
     tag = result['tag']
@@ -856,7 +847,7 @@ def list_tags():
     query = gql(
         """
             query ListTags {
-                allTags: findTags(filter: {per_page: 0}) {
+                allTags: findTags(filter: {per_page: -1}) {
                     tags {
                         id,
                         name
